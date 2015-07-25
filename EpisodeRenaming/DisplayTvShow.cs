@@ -12,6 +12,7 @@ using System.Net;
 namespace EpisodeRenaming {
     public partial class DisplayTvShow : Form {
         IEnumerable<TraktTvShowSearchResult> ShowData;
+        public TraktTvShowSearchResult tvShow;
         int Counter = 0;
 
         public DisplayTvShow ( IEnumerable<TraktTvShowSearchResult> showData ) {
@@ -45,7 +46,7 @@ namespace EpisodeRenaming {
             lblYear.Text = ShowData.ElementAt( position ).Show.Year != null ? ShowData.ElementAt( position ).Show.Year.ToString() : "Unknown";
             lblOverview.Text = ShowData.ElementAt( position ).Show.Overview;
 
-            TraktIDs ids = ShowData.ElementAt( position ).Show.Ids;
+            TraktTvShowIDs ids = ShowData.ElementAt( position ).Show.Ids;
 
             //lblTrakt.Text = ids.Trakt.ToString();
             //lblTrakt.Text = 
@@ -114,6 +115,12 @@ namespace EpisodeRenaming {
             }
             DisplayShowData( Counter );
 
+        }
+
+        private void btnUse_Click ( object sender, EventArgs e ) {
+            DialogResult = System.Windows.Forms.DialogResult.OK;
+            tvShow = ShowData.ElementAt( Counter );
+            Close();
         }
 
 

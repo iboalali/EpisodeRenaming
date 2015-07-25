@@ -44,6 +44,7 @@
             this.btnNext = new System.Windows.Forms.Button();
             this.btnPrevious = new System.Windows.Forms.Button();
             this.lblNoImageAvailable = new System.Windows.Forms.Label();
+            this.btnUse = new System.Windows.Forms.Button();
             ((System.ComponentModel.ISupportInitialize)(this.pbShowPoster)).BeginInit();
             this.SuspendLayout();
             // 
@@ -240,11 +241,23 @@
             this.lblNoImageAvailable.TabIndex = 20;
             this.lblNoImageAvailable.Text = "No Image Available";
             // 
+            // btnUse
+            // 
+            this.btnUse.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Bottom | System.Windows.Forms.AnchorStyles.Right)));
+            this.btnUse.Location = new System.Drawing.Point(299, 331);
+            this.btnUse.Name = "btnUse";
+            this.btnUse.Size = new System.Drawing.Size(75, 23);
+            this.btnUse.TabIndex = 21;
+            this.btnUse.Text = "Use";
+            this.btnUse.UseVisualStyleBackColor = true;
+            this.btnUse.Click += new System.EventHandler(this.btnUse_Click);
+            // 
             // DisplayTvShow
             // 
             this.AutoScaleDimensions = new System.Drawing.SizeF(6F, 13F);
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
             this.ClientSize = new System.Drawing.Size(467, 366);
+            this.Controls.Add(this.btnUse);
             this.Controls.Add(this.btnPrevious);
             this.Controls.Add(this.btnNext);
             this.Controls.Add(this.lblTvRage);
@@ -297,5 +310,6 @@
         private System.Windows.Forms.Button btnNext;
         private System.Windows.Forms.Button btnPrevious;
         private System.Windows.Forms.Label lblNoImageAvailable;
+        private System.Windows.Forms.Button btnUse;
     }
 }

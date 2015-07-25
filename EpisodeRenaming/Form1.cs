@@ -30,6 +30,13 @@ namespace EpisodeRenaming {
         string folderPath = string.Empty;
         string[] filesInDirectory;
         string[] filesAfterRenaming;
+        EpisodeInfo[] episodesInfo;
+
+        struct EpisodeInfo {
+            public int seasonNumber;
+            public int episodeNumber;
+
+        }
 
         Dictionary<int, string[]> files;
 
@@ -44,10 +51,7 @@ namespace EpisodeRenaming {
 
         //string[] episodeNumberFormat = new string[] { "%S(S2)%%E(E2)%", "%S(1)%%E(2)%" };
 
-        string ClientID = "96bd1d3f62624c5603f5df37b07a2180d747ef691e5ebd635844cc76b92c5537";
 
-        Uri baseAddress = new Uri( "https://api-v2launch.trakt.tv/" );
-        Uri mockBaseAddress = new Uri( "https://private-anon-9796605bd-trakt.apiary-mock.com/" );
 
         public Form1 () {
             InitializeComponent();
@@ -57,123 +61,36 @@ namespace EpisodeRenaming {
         }
 
         private void btnAnalyse_Click ( object sender, EventArgs e ) {
-            string fileName = txtOriginalName.Text;
-
-            string fileExt = fileName.Substring( fileName.LastIndexOf( '.' ) );
-            string regex1 = @"[sS].\d+[eE].\d+";
-            string regex2 = @"[^A-Za-z _]\d+[^A-Za-z _]";
-            string regex3 = @"\d+";
-
-            Match match1 = Regex.Match( fileName, regex1 );
-            Match match2 = Regex.Match( fileName, regex2 );
-            Match match3 = Regex.Match( fileName, regex3 );
-
-            int index = -1;
-            int length = -1;
-            string value = String.Empty;
-
-            if ( match1.Success ) {
-                index = match1.Index;
-                length = match1.Length;
-                value = match1.Value;
-
-            } else if ( match2.Success ) {
-                index = match2.Index;
-                length = match2.Length;
-                value = match2.Value;
-
-            } else if ( match3.Success ) {
-                index = match3.Index;
-                length = match3.Length;
-                value = match3.Value;
-
-            } else {
-                // No Match Found
-                MessageBox.Show( "No Match Found", "Warning" );
+            if ( lblFolderPathForOnline.Text == string.Empty ) {
                 return;
-
             }
 
-            string[] preEpisodeNumber = fileName.Substring( 0, index - 1 )
-                    .Split( new char[] { '.', '_', ' ', '-' }, StringSplitOptions.RemoveEmptyEntries );
+            BackgroundWorker bwTvShowSearch = new BackgroundWorker();
+            bwTvShowSearch.DoWork += bwTvShowSearch_DoWork;
+            bwTvShowSearch.RunWorkerCompleted += bwTvShowSearch_RunWorkerCompleted;
 
-            string[] postEpisodeNumber = fileName.Substring( index + length )
-                    .Split( new char[] { '.', '_', ' ', '-' }, StringSplitOptions.RemoveEmptyEntries );
-
-            var t = new CultureInfo( "en-US", false ).TextInfo;
-            StringBuilder sb = new StringBuilder();
-
-            for ( int i = 0; i < preEpisodeNumber.Length; i++ ) {
-                preEpisodeNumber[i] = t.ToTitleCase( preEpisodeNumber[i] );
-                sb.Append( preEpisodeNumber[i] + " " );
-
+            if ( txtOriginalName.Text == string.Empty ) {
+                return;
             }
 
-            sb.Append( value.ToUpper() + " " );
+            string[] arg = new string[] {
+                txtOriginalName.Text, 
+                "show",
+                //"2015"
+            };
 
-            for ( int i = 0; i < postEpisodeNumber.Length - 1; i++ ) {
-                postEpisodeNumber[i] = t.ToTitleCase( postEpisodeNumber[i] );
-                sb.Append( postEpisodeNumber[i] + " " );
-
-            }
-
-            sb.Remove( sb.Length - 1, 1 );
-            sb.Append( fileExt );
-
-            //txtRenamedName.Text = sb.ToString();
-
-
-
-
+            bwTvShowSearch.RunWorkerAsync( arg );
+            AnalyseFolder( txtPath.Text );
         }
 
-        private async Task<string> getSearchResult ( string query, string type, string year = "" ) {
-            string responseData = String.Empty;
-
-
-            using ( var httpClient = new HttpClient() ) {
-                httpClient.BaseAddress = baseAddress;
-                httpClient.DefaultRequestHeaders.TryAddWithoutValidation( "trakt-api-version", "2" );
-                httpClient.DefaultRequestHeaders.TryAddWithoutValidation( "trakt-api-key", ClientID );
-
-                if ( year == "" ) {
-                    using ( var response = await httpClient.GetAsync( "search?query=" + query + "&" + "type=" + type ) ) {
-                        responseData = await response.Content.ReadAsStringAsync();
-
-
-                    }
-                } else {
-                    using ( var response = await httpClient.GetAsync( "search?query=" + query + "&" + "type=" + type + "&year=" + year ) ) {
-                        responseData = await response.Content.ReadAsStringAsync();
-
-
-                    }
-                }
-
-
-
-            }
-
-            return responseData;
-
-
-        }
-
-        private void btnRename_Click ( object sender, EventArgs e ) {
-
-
-
-        }
-
-        void bw_DoWork ( object sender, DoWorkEventArgs e ) {
+        void bwTvShowSearch_DoWork ( object sender, DoWorkEventArgs e ) {
             string[] arg = ( string[] ) e.Argument;
-            Task<string> task = getSearchResult( arg[0], arg[1]/*, arg[2]*/ );
+            Task<string> task = OnlineSearchTrakt.getTvShowSearchResult( arg[0], arg[1]/*, arg[2]*/ );
             e.Result = task.Result;
 
         }
 
-
-        void bw_RunWorkerCompleted ( object sender, RunWorkerCompletedEventArgs e ) {
+        void bwTvShowSearch_RunWorkerCompleted ( object sender, RunWorkerCompletedEventArgs e ) {
             string response = ( string ) e.Result;
             //label1.Text = response;
             var show = response.FromJSONArray<TraktTvShowSearchResult>();
@@ -184,15 +101,53 @@ namespace EpisodeRenaming {
 
             }
 
-            new DisplayTvShow( show ).Show();
+            DisplayTvShow dTVshow = new DisplayTvShow( show );
+            if ( DialogResult.OK == dTVshow.ShowDialog() ) {
+                TraktTvShowSearchResult tvShowResult = dTVshow.tvShow;
 
-            //MessageBox.Show( response );
+                BackgroundWorker bwSeasonSearch = new BackgroundWorker();
+                bwSeasonSearch.DoWork += bwSeasonSearch_DoWork;
+                bwSeasonSearch.RunWorkerCompleted += bwSeasonSearch_RunWorkerCompleted;
+                bwSeasonSearch.RunWorkerAsync( tvShowResult );
+            }
+
         }
 
+        private void bwSeasonSearch_DoWork ( object sender, DoWorkEventArgs e ) {
+            TraktTvShowSearchResult tvShowResult = ( TraktTvShowSearchResult ) e.Argument;
+            Task<string> result = OnlineSearchTrakt.getSeasonSearchResult( tvShowResult.Show.Ids.Slug );
+
+            object[] res = new object[]{
+                result,
+                tvShowResult
+            };
+            e.Result = res;
+        }
+
+        private void bwSeasonSearch_RunWorkerCompleted ( object sender, RunWorkerCompletedEventArgs e ) {
+            TraktTvShowCompleteInfo tvShowCompleteInfo = new TraktTvShowCompleteInfo();
+            object[] res =( object[] ) e.Result;
+
+            string response = ( string ) res[0];
+            TraktTvShowSearchResult tvShow = ( TraktTvShowSearchResult ) res[1];
+
+            var seasons = response.FromJSONArray<TraktTvSeason>();
+
+            tvShowCompleteInfo.TvShow = tvShow;
+            tvShowCompleteInfo.Seasons = ( List<TraktTvSeason> ) seasons;
+
+            TraktTvCache.setTvShow( tvShowCompleteInfo );
+
+
+        }
+
+
+
+        // Deprecated
         private void btnTraktAPI_Click ( object sender, EventArgs e ) {
             BackgroundWorker bw = new BackgroundWorker();
-            bw.DoWork += bw_DoWork;
-            bw.RunWorkerCompleted += bw_RunWorkerCompleted;
+            bw.DoWork += bwTvShowSearch_DoWork;
+            bw.RunWorkerCompleted += bwTvShowSearch_RunWorkerCompleted;
 
             if ( txtOriginalName.Text == string.Empty ) {
                 return;
@@ -208,22 +163,6 @@ namespace EpisodeRenaming {
 
         }
 
-
-
-        // Offline Methods
-        private void btnOfflineOpenFolder_Click ( object sender, EventArgs e ) {
-            FolderBrowserDialog fbd = new FolderBrowserDialog();
-
-            fbd.ShowNewFolderButton = false;
-
-            if ( fbd.ShowDialog() == System.Windows.Forms.DialogResult.OK ) {
-                folderPath = fbd.SelectedPath;
-                AnalyseFolder( folderPath );
-
-            }
-
-        }
-
         private void AnalyseFolder ( string path ) {
             if ( path == string.Empty ) {
                 return;
@@ -231,25 +170,29 @@ namespace EpisodeRenaming {
 
             filesInDirectory = Directory.GetFiles( path );
             filesAfterRenaming = new string[filesInDirectory.Length];
+            episodesInfo = new EpisodeInfo[filesInDirectory.Length];
             files = new Dictionary<int, string[]>();
-            lvOfflineAllFiles.Items.Clear();
+            lvAllFiles.Items.Clear();
 
             for ( int i = 0; i < filesInDirectory.Length; i++ ) {
                 string before = filesInDirectory[i].Substring( filesInDirectory[i].LastIndexOf( '\\' ) + 1 );
-                string after = AnalyseOneEpisode( filesInDirectory[i].Substring( filesInDirectory[i].LastIndexOf( '\\' ) + 1 ) );
+                string after = AnalyseOneEpisode( filesInDirectory[i].Substring( filesInDirectory[i].LastIndexOf( '\\' ) + 1 ), out episodesInfo[i] );
+                if ( after == "-1" ) {
+                    return;
+                }
 
                 files.Add( i, new string[] { before, after } );
 
-                lvOfflineAllFiles.Items.Add( new ListViewItem( new string[] { before, after } ) );
+                lvAllFiles.Items.Add( new ListViewItem( new string[] { before, after } ) );
 
             }
 
 
         }
 
-        private string AnalyseOneEpisode ( string fileName ) {
+        private string AnalyseOneEpisode ( string fileName, out EpisodeInfo epInfo ) {
             string fileExt = fileName.Substring( fileName.LastIndexOf( '.' ) );
-            string correctName = txtOfflineTvShowName.Text;
+            string correctName = txtOriginalName.Text;
 
             string SeasonNumber = "S";
             string EpisodeNumber = "E";
@@ -315,14 +258,22 @@ namespace EpisodeRenaming {
 
             } else {
                 // No Match Found
+                epInfo = new EpisodeInfo();
                 return "Warning! Couldn't Find the Episode Number";
 
+            }
+
+            if ( txtOriginalName.Text == string.Empty ) {
+                string showName = fileName.Substring( 0, index - 1 );
+                showName = showName.Replace( ".", " " ).Replace( "_", " " ).Replace( "-", " " );
+                txtOriginalName.Text = showName;
+                correctName = showName;
             }
 
             var t = new CultureInfo( "en-US", false ).TextInfo;
             StringBuilder sb = new StringBuilder();
 
-            removeAllSpacesAtTheEndOfAString( correctName );
+            correctName = removeAllSpacesAtTheEndOfAString( correctName );
             correctName = t.ToTitleCase( correctName );
 
             sb.Append( correctName + " " );
@@ -330,6 +281,8 @@ namespace EpisodeRenaming {
             sb.Append( EpisodeNumber );
             sb.Append( fileExt );
 
+            epInfo.seasonNumber = Convert.ToInt32( SeasonNumber.Substring( 1 ) );
+            epInfo.episodeNumber = Convert.ToInt32( EpisodeNumber.Substring( 1 ) );
             return sb.ToString();
 
         }
@@ -347,7 +300,7 @@ namespace EpisodeRenaming {
 
         }
 
-        private void btnOfflineRename_Click ( object sender, EventArgs e ) {
+        private void btnRename_Click ( object sender, EventArgs e ) {
             for ( int i = 0; i < filesInDirectory.Length; i++ ) {
                 File.Move( folderPath + "\\" + files[i][0], folderPath + "\\" + files[i][1] );
 
@@ -390,16 +343,17 @@ namespace EpisodeRenaming {
 
         }
 
-        //Online Methods
-
-        private void btnOnlineOpenFolder_Click ( object sender, EventArgs e ) {
+        private void btnOpenFolder_Click ( object sender, EventArgs e ) {
             FolderBrowserDialog fbd = new FolderBrowserDialog();
 
             fbd.ShowNewFolderButton = false;
 
+
             if ( fbd.ShowDialog() == System.Windows.Forms.DialogResult.OK ) {
                 folderPathForOnline = fbd.SelectedPath;
-                lblFolderPathForOnline.Text = "Path: " + folderPathForOnline;
+                txtPath.Text = folderPathForOnline;
+
+                AnalyseFolder( fbd.SelectedPath );
 
             }
 

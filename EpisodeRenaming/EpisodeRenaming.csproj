@@ -57,6 +57,12 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="Cache.cs" />
+    <Compile Include="Data Structure\TraktTvEpisode.cs" />
+    <Compile Include="Data Structure\TraktTvSeasonIDs.cs" />
+    <Compile Include="TraktTvCache.cs" />
+    <Compile Include="Data Structure\TraktTvEpisodeIDs.cs" />
+    <Compile Include="Data Structure\TraktTvSeason.cs" />
+    <Compile Include="Data Structure\TraktTvShowCompleteInfo.cs" />
     <Compile Include="DisplayTvShow.cs">
       <SubType>Form</SubType>
     </Compile>
@@ -71,9 +77,10 @@
     </Compile>
     <Compile Include="Extensions\JsonExtensions.cs" />
     <Compile Include="NameDescription.cs" />
+    <Compile Include="OnlineSearchTrakt.cs" />
     <Compile Include="Program.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
-    <Compile Include="Data Structure\TraktIDs.cs" />
+    <Compile Include="Data Structure\TraktTvShowIDs.cs" />
     <Compile Include="Data Structure\TraktShowInfo.cs" />
     <Compile Include="Data Structure\TraktTvShow.cs" />
     <Compile Include="Data Structure\TraktTvShowImages.cs" />

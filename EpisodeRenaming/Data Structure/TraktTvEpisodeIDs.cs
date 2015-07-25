@@ -2,13 +2,10 @@
 
 namespace EpisodeRenaming {
     [DataContract]
-    public class TraktIDs {
+    public class TraktTvEpisodeIDs {
 
         [DataMember( Name = "trakt" )]
         public int? Trakt { get; set; }
-
-        [DataMember( Name = "slug" )]
-        public string Slug { get; set; }
 
         [DataMember( Name = "tvdb" )]
         public int? Tvdb { get; set; }
@@ -21,7 +18,5 @@ namespace EpisodeRenaming {
 
         [DataMember( Name = "tvrage" )]
         public int? TvRage { get; set; }
-
-
     }
 }

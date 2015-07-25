@@ -17,6 +17,6 @@ namespace EpisodeRenaming {
         public TraktTvShowImages Images { get; set; }
 
         [DataMember( Name = "ids" )]
-        public TraktIDs Ids { get; set; }
+        public TraktTvShowIDs Ids { get; set; }
     }
 }
